@@ -53,7 +53,7 @@ def load_models():
             model_type='yolov8', model_path=FEATURE_MODEL_PATH,
             confidence_threshold=FEATURE_CONF_THRESHOLD, device=device
         )
-        models['face_shape_classifier'] = torch.load(CLASSIFICATION_MODEL_PATH, map_location=device)
+        models['face_shape_classifier'] = torch.load(CLASSIFICATION_MODEL_PATH, map_location=device, weights_only=False)
         models['face_shape_classifier'].to(device).eval()
 
         print("--- ✅ All models loaded successfully! Server is ready. ---")
