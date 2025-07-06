@@ -75,7 +75,8 @@ async def analyze_face_image(
     }
     
     # Bổ sung URL truy cập ảnh vào JSON response
-    base_url = "http://localhost:8000" # Thay thế bằng domain của bạn trên Orender
+    import os
+    base_url = os.getenv("BASE_URL", "http://localhost:8000")  # Sử dụng environment variable cho Render
     master_json_data["visuals"] = {
         "annotated_image_url": f"{base_url}/results/{request_id}/annotated",
         "report_image_url": f"{base_url}/results/{request_id}/report"

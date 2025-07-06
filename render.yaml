@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: physiognomy-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: BASE_URL
+        value: https://physiognomy-api.onrender.com
