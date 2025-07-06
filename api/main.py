@@ -1,6 +1,8 @@
 import io
 import uuid
 import datetime
+import zipfile
+import json
 from PIL import Image
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -100,3 +102,61 @@ def get_result_image(request_id: str, image_type: str):
     image_buffer.seek(0) # Đảm bảo con trỏ ở đầu buffer
     
     return StreamingResponse(io.BytesIO(image_buffer.read()), media_type="image/jpeg")
+
+
+@app.post("/analyze-zip/", tags=["Analysis"])
+async def analyze_face_image_zip(
+    file: UploadFile = File(..., description="Tệp ảnh cần phân tích (JPG, PNG)."),
+    models: Dict = Depends(get_models)
+):
+    """
+    Endpoint trả về kết quả dưới dạng ZIP file chứa:
+    - annotated_image.jpg: Ảnh đã chú thích
+    - report.jpg: Ảnh báo cáo
+    - analysis.json: Dữ liệu phân tích JSON
+    """
+    # Đọc nội dung file ảnh
+    image_bytes = await file.read()
+
+    # Kiểm tra định dạng file ảnh
+    if file.content_type not in ["image/jpeg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Định dạng tệp không hợp lệ. Chỉ chấp nhận JPG hoặc PNG.")
+
+    try:
+        original_image = Image.open(io.BytesIO(image_bytes))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Không thể xử lý tệp ảnh. Tệp có thể bị hỏng.")
+
+    # Chạy pipeline xử lý
+    annotated_img, report_img, master_json_data = run_analysis_pipeline(
+        original_image, models["face"], models["feature"], models["classifier"], file.filename
+    )
+
+    if not master_json_data:
+        raise HTTPException(status_code=500, detail="Phân tích thất bại. Không phát hiện được khuôn mặt hoặc có lỗi xảy ra.")
+
+    # Tạo ZIP file trong memory
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Thêm ảnh đã chú thích
+        annotated_buffer = io.BytesIO()
+        annotated_img.save(annotated_buffer, format="JPEG")
+        zip_file.writestr("annotated_image.jpg", annotated_buffer.getvalue())
+        
+        # Thêm ảnh báo cáo
+        report_buffer = io.BytesIO()
+        report_img.save(report_buffer, format="JPEG")
+        zip_file.writestr("report.jpg", report_buffer.getvalue())
+        
+        # Thêm dữ liệu JSON
+        json_str = json.dumps(master_json_data, indent=2, ensure_ascii=False)
+        zip_file.writestr("analysis.json", json_str.encode('utf-8'))
+    
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(
+        io.BytesIO(zip_buffer.read()), 
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=analysis_results.zip"}
+    )
