@@ -31,7 +31,20 @@ def load_all_models(device):
             confidence_threshold=config.FEATURE_CONF_THRESHOLD,
             device=device
         )
-        face_shape_classifier = torch.load(config.CLASSIFICATION_MODEL_PATH, map_location=device)
+        # Add safe globals for torchvision EfficientNet model loading
+        torch.serialization.add_safe_globals([torch.nn.Module])
+        try:
+            import torchvision.models.efficientnet
+            torch.serialization.add_safe_globals([torchvision.models.efficientnet.EfficientNet])
+        except ImportError:
+            pass
+        
+        try:
+            face_shape_classifier = torch.load(config.CLASSIFICATION_MODEL_PATH, map_location=device, weights_only=True)
+        except Exception:
+            # Fallback to weights_only=False if safe loading fails
+            print("Warning: Loading model with weights_only=False due to compatibility issues")
+            face_shape_classifier = torch.load(config.CLASSIFICATION_MODEL_PATH, map_location=device, weights_only=False)
         face_shape_classifier.to(device).eval()
         print("Tất cả mô hình đã được tải thành công.")
         return {
