@@ -30,14 +30,14 @@ uvicorn api.main:app --reload
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
    - **Environment Variables**:
-     - `PYTHON_VERSION`: `3.11`
+     - `PYTHON_VERSION`: `3.11.9`
      - `BASE_URL`: `https://your-app-name.onrender.com`
 
 ## Environment Variables cần thiết cho Production
 
 - `PORT`: Port mà ứng dụng sẽ chạy (Render tự động cung cấp)
 - `BASE_URL`: URL cơ sở của ứng dụng trên production
-- `PYTHON_VERSION`: `3.11`
+- `PYTHON_VERSION`: `3.11.9`
 
 ## API Endpoints
 
